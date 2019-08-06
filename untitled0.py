@@ -1,4 +1,3 @@
-import os
 
-import pandas as pd 
 print('versión Julio')
+print('Esta es la version de César')
