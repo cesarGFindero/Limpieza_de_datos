@@ -1,68 +1,56 @@
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
-from datetime import datetime
-import os
+# ***************
+# Como parte del proceso de limpieza, se creean las gráficas dinámicas y se guardan
+# ***************
+
 import pdb
+import plotly as py
+import plotly.graph_objs as go
+import pandas as pd
+import os
 
-def graficas(cliente,mes):
     
-    formato_fecha = '%d-%m-%Y'
-    carpeta = 'D:/01 Findero/'+mes+'/'+cliente+'/Datos'
-    
-    finderos = os.listdir(carpeta)
-    finderos = [item for item in finderos if '.CSV' in item[-4:] or '.csv' in item[-4:]]
-    
-    
-    for findero in finderos:  
+def graficas_dinamicas(cliente,mes,findero,df):
+    carpeta_out = f'D:/01 Findero/{mes}/{cliente}/Graficas'   
+    frecuencia_graficacion = 5
+    if not os.path.exists(carpeta_out):
+        os.mkdir(carpeta_out)
         
-        direccion_input = carpeta + '/' + findero
-        
-        data = pd.read_csv(direccion_input)
+    carpeta_out_findero = f'{carpeta_out}/{findero[8:-4]}'
     
+    if not os.path.exists(carpeta_out_findero):
+        os.mkdir(carpeta_out_findero)
+    
+    df['Datetime'] = pd.to_datetime(df['Date']+' '+df['Time'], format='%d-%m-%Y  %H:%M:%S')
         
-        for i in range (1,13):
+    for columna in df.columns:
+        
+        if 'Date' in columna or 'Time' in columna or 'Datetime' in columna or 'Milis' in columna :
+            continue
             
-            columna = 'L'+str(i) 
+        puerto = f'Puerto {columna[1:]}'
+        y_data = df[columna].values
+        
+        x_data = df['Datetime']-pd.Timedelta('0 days 0:00:00')
+        
+        layout = go.Layout(
+                title = puerto +'  '+ findero[8:-4],
+                yaxis = dict(
+                        title = 'Potencia'
+                        ),
+                xaxis = dict(
+                        title = 'Fecha y hora'
+                        )
+                )
                 
-            y_data = data[columna].values
-            fecha = data['Date']
-            hora = data['Time']
-            data['Tiempo'] = fecha + hora
-            x_data = pd.to_datetime(data['Tiempo'], format=formato_fecha+' %H:%M:%S') #tiempo en horas
-    
-            
-            y_data = y_data[::20]
-            x_data = x_data[::20]
-            
-    
-            if max(y_data)<=140:
-                limite_superior = 140   
-            else:
-                limite_superior = max(y_data)*1    
-
-            if not os.path.exists(carpeta+'/'+'Graficas'):
-              	os.mkdir(carpeta+'/'+'Graficas')
-            
-            if not os.path.exists(carpeta+'/'+'Graficas'+'/'+findero):
-              	os.mkdir(carpeta+'/'+'Graficas'+'/'+findero)
-            
-            ax = plt.gca()
-            fig= plt.figure()
-            plt.plot(x_data,y_data,label='Findero',linewidth=1, color = 'k')
-            plt.ylabel('Potencia [W]')
-            plt.ylim(0,limite_superior)
-            plt.title(columna)
-            plt.gcf().autofmt_xdate()
-            ax.xaxis_date()
-            myFmt = mdates.DateFormatter('%H:%M')
-            ax.xaxis.set_major_formatter(myFmt)
-            plt.savefig(carpeta+'/'+'Graficas'+'/'+findero+'/'+columna+'.png',bbox_inches='tight')
-            plt.close()
-
-if __name__ == '__main__':
-    cliente = '05 Antonio Cortina'
-    mes='06 Junio'
-    graficas(cliente, mes)
-    
+        trace1 = go.Scattergl(
+                        x = x_data[::frecuencia_graficacion],
+                        y = y_data[::frecuencia_graficacion],
+                        mode = 'lines',
+                        line = dict(
+                                color  = 'rgb(0,0,0)',
+                                shape = 'linear',
+                                width = 2,   
+                                )
+                        )
+        fig = go.Figure(data = [trace1] ,layout=layout)
+        py.offline.plot(fig, filename = f'{carpeta_out_findero}/{puerto}.html', auto_open=False)
