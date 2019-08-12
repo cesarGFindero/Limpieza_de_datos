@@ -4,6 +4,7 @@
 #*******************************
 
 import pandas as pd
+import numpy as np
 import os
 import pdb
 import graficas as gd
@@ -51,21 +52,22 @@ def leer_y_preparar(filename,saltos,inicio,formato_fecha):
     
     df.dropna(inplace=True)
     filas_inicial = df.shape[0]
+    df = df[np.logical_not(df['Date'].str.len()<9)]
     df = df[~df['Date'].str.contains("2165")] # Por un error, el findero coloca fechas en el año 2165 y 2158
     df = df[~df['Date'].str.contains("2158")]
     fecha_mal = filas_inicial-df.shape[0]
     df = df[~df['Date'].str.contains("00")] # Por un error, algunas fechas tienen día 00
     df = df[~df['Date'].str.contains("45")] # Por un error, algunas fechas tienen día 45
-    dia_mal = filas_inicial-df.shape[0] + fecha_mal
+    dia_mal = filas_inicial-df.shape[0] - fecha_mal
     df = df[~df['Time'].str.contains("62")] # Por un error, algunas fechas tienen hora 62
-    hora_mal = filas_inicial-df.shape[0] + dia_mal + fecha_mal
+    hora_mal = filas_inicial-df.shape[0] - dia_mal - fecha_mal
     
            
             
-    if pd.to_datetime(df['Date'], format=formato_fecha, errors='coerce').notnull().all() == False:
-        if pd.to_datetime(df['Date'], format='%d/%m/%Y', errors='coerce').notnull().all() == True:
+    if not pd.to_datetime(df['Date'], format=formato_fecha, errors='coerce').notnull().all():
+        if pd.to_datetime(df['Date'], format='%d/%m/%Y', errors='coerce').notnull().all():
             df['Date'] = df['Date'].str.replace('/','-')
-        elif pd.to_datetime(df['Date'], format='%d/%m/%y', errors='coerce').notnull().all() == True:
+        elif pd.to_datetime(df['Date'], format='%d/%m/%y', errors='coerce').notnull().all():
             df['Date'] = df['Date'].str.replace('/','-')
             for i in range(1,13):
                 df['Date'] = df['Date'].str.replace(str(i),'0'+str(i))
@@ -141,7 +143,7 @@ def limpiar(cliente,mes,inicio):
     
 
 if __name__=="__main__":
-    cliente = '99 Martin Urrutia'
+    cliente = '12 Eugenia Pinzon'
     mes='08 Agosto'
     inicio = None
     limpiar(cliente,mes,inicio)
